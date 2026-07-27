@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiple Linear Regression Calculator</title>
+    <style>
+        :root {
+            --bg-main: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background: var(--card-bg);
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            max-width: 700px;
+            width: 100%;
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 24px;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .section-title {
+            margin-top: 24px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        .row-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+
+        .label-tag {
+            font-weight: 600;
+            width: 32px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .input-box {
+            padding: 10px 14px;
+            font-size: 14px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background-color: #fff;
+            color: var(--text-main);
+            transition: border-color 0.15s ease;
+        }
+
+        .input-box:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .name-field {
+            width: 160px;
+        }
+
+        .val-field {
+            flex-grow: 1;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: none;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(79, 70, 229, 0.05);
+        }
+
+        .btn-danger {
+            background-color: transparent;
+            color: var(--danger);
+            padding: 8px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-danger:hover {
+            background-color: rgba(239, 68, 68, 0.08);
+        }
+
+        .btn-submit {
+            background-color: var(--primary);
+            color: white;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-submit:hover {
+            background-color: var(--primary-hover);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Multiple Linear Regression Calculator</h2>
+
+        <form action="/calculate" method="POST">
+            <h3 class="section-title">Target Variable (y)</h3>
+            <div class="row-container" style="padding-left: 44px;">
+                <input type="text" name="y_name" class="input-box name-field" placeholder="Target Name (e.g., Price)"
+                    required>
+                <input type="text" name="y_values" class="input-box val-field"
+                    placeholder="Comma-separated values (e.g., 200, 250, 300)" required>
+            </div>
+
+            <h3 class="section-title">Feature Variables (x)</h3>
+            <div id="features-wrapper">
+                <div class="row-container" id="row_0">
+                    <span class="label-tag">x1:</span>
+                    <input type="text" name="x_name_0" class="input-box name-field"
+                        placeholder="Feature Name (e.g., Size)" required>
+                    <input type="text" name="x_values_0" class="input-box val-field"
+                        placeholder="Comma-separated values" required>
+                    <div style="width: 32px;"></div> <!-- Spacer matching remove button width -->
+                </div>
+            </div>
+
+            <button type="button" class="btn btn-secondary" onclick="addFeatureRow()">+ Add Another Feature</button>
+            <button type="submit" class="btn btn-submit">Calculate Regression</button>
+        </form>
+    </div>
+
+    <script>
+        let featureIndices = [0];
+        let nextIndex = 1;
+
+        function addFeatureRow() {
+            const wrapper = document.getElementById('features-wrapper');
+            const newRow = document.createElement('div');
+            const currentIndex = nextIndex;
+
+            newRow.className = 'row-container';
+            newRow.id = `row_${currentIndex}`;
+
+
+            featureIndices.push(currentIndex);
+
+            newRow.innerHTML = `
+                <span class="label-tag" id="label_${currentIndex}">x${featureIndices.length}:</span>
+                <input type="text" name="x_name_${currentIndex}" class="input-box name-field" placeholder="Feature Name" required>
+                <input type="text" name="x_values_${currentIndex}" class="input-box val-field" placeholder="Comma-separated values" required>
+                <button type="button" class="btn btn-danger" onclick="removeFeatureRow(${currentIndex})" title="Remove feature">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+            `;
+            wrapper.appendChild(newRow);
+            nextIndex++;
+        }
+
+        function removeFeatureRow(index) {
+            const row = document.getElementById(`row_${index}`);
+            if (row) {
+                row.remove();
+                featureIndices = featureIndices.filter(i => i !== index);
+                reindexLabels();
+            }
+        }
+
+        function reindexLabels() {
+            featureIndices.forEach((index, arrayIdx) => {
+                const label = document.getElementById(`label_${index}`);
+                if (label) {
+                    label.textContent = `x${arrayIdx + 1}:`;
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

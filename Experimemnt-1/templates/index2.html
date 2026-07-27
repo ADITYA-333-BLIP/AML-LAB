@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Regression Calculator</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+
+    <div class="max-w-3xl w-full bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+        
+        <!-- Header -->
+        <div class="bg-slate-900 px-8 py-6">
+            <h2 class="text-2xl font-bold text-white text-center">Linear Regression Calculator</h2>
+            <p class="text-slate-400 text-center text-sm mt-2">Enter your dataset features below to calculate metrics and visualize</p>
+        </div>
+
+        <div class="p-8">
+            <!-- Inputs -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div>
+                    <label for="xValues" class="block text-sm font-medium text-slate-700 mb-2">First Feature (X Values)</label>
+                    <input type="text" id="xValues" 
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                        placeholder="e.g., 1, 2, 3, 4">
+                    <p class="text-xs text-slate-500 mt-1">Comma-separated numbers</p>
+                </div>
+
+                <div>
+                    <label for="yValues" class="block text-sm font-medium text-slate-700 mb-2">Second Feature (Y Values)</label>
+                    <input type="text" id="yValues" 
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                        placeholder="e.g., 2, 3, 5, 4">
+                    <p class="text-xs text-slate-500 mt-1">Comma-separated numbers</p>
+                </div>
+            </div>
+
+            <!-- Main Action -->
+            <button onclick="calculateRegression()" 
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                Calculate Regression
+            </button>
+
+            <!-- Results Container -->
+            <div id="resultContainer" class="hidden mt-8">
+                <div id="resultContent" class="bg-slate-50 border border-slate-200 rounded-xl p-6">
+                    <!-- Injected via JS -->
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex gap-4 mt-6">
+                    <button id="visualizeBtn" onclick="visualizeGraph()" 
+                        class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 px-4 rounded-lg shadow transition-colors hidden focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">
+                        Visualize Graphs
+                    </button>
+                    <button id="resetBtn" onclick="reset()" 
+                        class="flex-1 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 px-4 rounded-lg shadow-sm transition-colors hidden focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">
+                        Reset Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Plots -->
+            <div id="plotsContainer" class="hidden mt-8 space-y-6">
+                <div id="plotDiv1" class="bg-white p-2 border border-slate-200 rounded-xl shadow-sm hidden">
+                    <img id="graphImage" class="w-full h-auto rounded-lg" alt="Regression Graph">
+                </div>
+                <div id="plotDiv2" class="bg-white p-2 border border-slate-200 rounded-xl shadow-sm hidden">
+                    <img id="metricImage" class="w-full h-auto rounded-lg" alt="Metrics Graph">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let graphX = [];
+        let graphY = [];
+        let m = 0, b = 0, mse = 0, mae = 0, rmse = 0, rSquared = 0;
+
+        function calculateRegression() {
+            const xInput = document.getElementById('xValues').value;
+            const yInput = document.getElementById('yValues').value;
+            const resultContainer = document.getElementById('resultContainer');
+            const resultContent = document.getElementById('resultContent');
+
+            const xTokens = xInput.split(',');
+            const x = [];
+            for (let i = 0; i < xTokens.length; i++) {
+                const num = parseFloat(xTokens[i].trim());
+                if (!isNaN(num)) x.push(num);
+            }
+
+            const yTokens = yInput.split(',');
+            const y = [];
+            for (let i = 0; i < yTokens.length; i++) {
+                const num = parseFloat(yTokens[i].trim());
+                if (!isNaN(num)) y.push(num);
+            }
+
+            resultContainer.classList.remove('hidden');
+            document.getElementById("visualizeBtn").classList.add("hidden");
+            document.getElementById("resetBtn").classList.add("hidden");
+            document.getElementById("plotsContainer").classList.add("hidden");
+
+            // Error Handling UI
+            if (x.length === 0 || y.length === 0) {
+                resultContent.innerHTML = `<div class="text-red-600 font-medium flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Error: Please enter valid numbers.</div>`;
+                return;
+            }
+            if (x.length !== y.length) {
+                resultContent.innerHTML = `<div class="text-red-600 font-medium flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Error: The number of items must match. (X has ${x.length}, Y has ${y.length})</div>`;
+                return;
+            }
+
+            const n = x.length;
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+
+            for (let i = 0; i < n; i++) {
+                sumX += x[i];
+                sumY += y[i];
+                sumXY += (x[i] * y[i]);
+                sumXX += (x[i] * x[i]);
+            }
+
+            const denominator = (n * sumXX - sumX * sumX);
+            
+            if (denominator === 0) {
+                resultContent.innerHTML = `<div class="text-red-600 font-medium flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Error: Cannot calculate regression (vertical line or identical X values).</div>`;
+                return;
+            }
+
+            m = (n * sumXY - sumX * sumY) / denominator;
+            b = (sumY - m * sumX) / n;
+
+            const meanY = sumY / n;
+            let sse = 0, sst = 0, maeSum = 0;
+            for (let i = 0; i < n; i++) {
+                const predY = m * x[i] + b;
+                sse += Math.pow(y[i] - predY, 2);
+                sst += Math.pow(y[i] - meanY, 2);
+                maeSum += Math.abs(y[i] - predY);
+            }
+            
+            mae = maeSum / n;
+            mse = sse / n;
+            rmse = Math.sqrt(mse);
+            rSquared = sst !== 0 ? 1 - (sse / sst) : 1;
+
+            // Success UI
+            resultContent.innerHTML = `
+                <div class="mb-5 text-center">
+                    <span class="text-sm text-slate-500 uppercase tracking-wider font-semibold">Line of Best Fit</span>
+                    <div class="text-2xl font-bold text-blue-600 mt-1 bg-blue-50 py-2 px-4 rounded-lg inline-block">
+                        Y = ${m.toFixed(4)}X ${b >= 0 ? '+' : '-'} ${Math.abs(b).toFixed(4)}
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                        <div class="text-xs text-slate-500 mb-1">Slope (m)</div>
+                        <div class="font-semibold text-slate-800">${m.toFixed(4)}</div>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                        <div class="text-xs text-slate-500 mb-1">Y-Intercept (b)</div>
+                        <div class="font-semibold text-slate-800">${b.toFixed(4)}</div>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                        <div class="text-xs text-slate-500 mb-1">R² Score</div>
+                        <div class="font-semibold ${rSquared > 0.8 ? 'text-green-600' : 'text-slate-800'}">${rSquared.toFixed(4)}</div>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                        <div class="text-xs text-slate-500 mb-1">MAE</div>
+                        <div class="font-semibold text-slate-800">${mae.toFixed(4)}</div>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                        <div class="text-xs text-slate-500 mb-1">MSE</div>
+                        <div class="font-semibold text-slate-800">${mse.toFixed(4)}</div>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                        <div class="text-xs text-slate-500 mb-1">RMSE</div>
+                        <div class="font-semibold text-slate-800">${rmse.toFixed(4)}</div>
+                    </div>
+                </div>
+            `;
+
+            graphX = x;
+            graphY = y;
+
+            document.getElementById("visualizeBtn").classList.remove("hidden");
+            document.getElementById("resetBtn").classList.remove("hidden");
+        }
+
+        async function visualizeGraph() {
+            // Added loading state to button
+            const visBtn = document.getElementById("visualizeBtn");
+            const originalText = visBtn.innerText;
+            visBtn.innerText = "Generating...";
+            visBtn.disabled = true;
+            visBtn.classList.add("opacity-70", "cursor-not-allowed");
+
+            try {
+                const response = await fetch("/visualize_regression", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        x: graphX, y: graphY, m: m, b: b, mse: mse, mae: mae, rmse: rmse, r2: rSquared
+                    })
+                });
+
+                const data = await response.json();
+
+                document.getElementById("plotsContainer").classList.remove("hidden");
+                
+                const plot1 = document.getElementById("plotDiv1");
+                const plot2 = document.getElementById("plotDiv2");
+                
+                plot1.classList.remove("hidden");
+                plot2.classList.remove("hidden");
+
+                document.getElementById("graphImage").src = data.image1;
+                document.getElementById("metricImage").src = data.image2;
+            } catch (error) {
+                alert("Error connecting to the visualization server.");
+                console.error(error);
+            } finally {
+                // Restore button state
+                visBtn.innerText = originalText;
+                visBtn.disabled = false;
+                visBtn.classList.remove("opacity-70", "cursor-not-allowed");
+            }
+        }
+
+        function reset() {
+            document.getElementById("xValues").value = "";
+            document.getElementById("yValues").value = "";
+            document.getElementById("resultContainer").classList.add("hidden");
+            document.getElementById("plotsContainer").classList.add("hidden");
+            
+            document.getElementById("plotDiv1").classList.add("hidden");
+            document.getElementById("plotDiv2").classList.add("hidden");
+            
+            document.getElementById("visualizeBtn").classList.add("hidden");
+            document.getElementById("resetBtn").classList.add("hidden");
+            
+            // Clear images
+            document.getElementById("graphImage").src = "";
+            document.getElementById("metricImage").src = "";
+            
+            // Focus back on first input
+            document.getElementById("xValues").focus();
+        }
+    </script>
+
+</body>
+</html>
